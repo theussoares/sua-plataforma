@@ -12,53 +12,48 @@
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow-sm sm:rounded-xl sm:px-10 border border-gray-200">
         <form class="space-y-6" @submit.prevent="handleLogin">
-          
           <div v-if="errorMsg" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
             {{ errorMsg }}
           </div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">
-              E-mail
-            </label>
+            <label for="email" class="block text-sm font-medium text-gray-700">E-mail</label>
             <div class="mt-1">
-              <input 
-                id="email" 
-                name="email" 
-                type="email" 
-                autocomplete="email" 
-                required 
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
                 v-model="email"
-                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" 
+                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label for="password" class="block text-sm font-medium text-gray-700">
-                Senha
-              </label>
+              <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
               <NuxtLink to="/dashboard/recover" class="text-sm font-medium text-blue-600 hover:underline">
                 Esqueceu a senha?
               </NuxtLink>
             </div>
             <div class="mt-1">
-              <input 
-                id="password" 
-                name="password" 
-                type="password" 
-                autocomplete="current-password" 
-                required 
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
                 v-model="password"
-                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" 
+                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               :disabled="loading"
               class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 transition-colors"
             >
@@ -73,9 +68,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSupabaseClient, navigateTo, useHead } from '#imports'
+import { navigateTo, useHead } from '#imports'
 
-// Evitar de herdar o layout do dashboard
 definePageMeta({ layout: false })
 useHead({ title: 'Login - Dashboard' })
 
@@ -84,26 +78,18 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
-const supabase = useSupabaseClient()
-
 const handleLogin = async () => {
   loading.value = true
   errorMsg.value = ''
-  
+
   try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { email: email.value, password: password.value },
     })
-    
-    if (error) {
-      errorMsg.value = error.message
-    } else {
-      // Se logar com sucesso, o middleware redireciona pra dashboard, mas vamos forçar
-      await navigateTo('/dashboard')
-    }
+    await navigateTo('/dashboard')
   } catch (err: any) {
-    errorMsg.value = err.message || 'Erro ao conectar no servidor'
+    errorMsg.value = err.data?.statusMessage ?? 'Erro ao conectar no servidor.'
   } finally {
     loading.value = false
   }

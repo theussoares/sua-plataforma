@@ -22,40 +22,36 @@
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">
-              Nova Senha
-            </label>
+            <label for="password" class="block text-sm font-medium text-gray-700">Nova Senha</label>
             <div class="mt-1">
-              <input 
-                id="password" 
-                type="password" 
-                required 
+              <input
+                id="password"
+                type="password"
+                required
                 v-model="password"
                 minlength="6"
-                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" 
+                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label for="passwordConfirm" class="block text-sm font-medium text-gray-700">
-              Confirmar Nova Senha
-            </label>
+            <label for="passwordConfirm" class="block text-sm font-medium text-gray-700">Confirmar Nova Senha</label>
             <div class="mt-1">
-              <input 
-                id="passwordConfirm" 
-                type="password" 
-                required 
+              <input
+                id="passwordConfirm"
+                type="password"
+                required
                 v-model="passwordConfirm"
                 minlength="6"
-                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" 
+                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               :disabled="loading"
               class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 transition-colors"
             >
@@ -70,9 +66,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSupabaseClient, useHead } from '#imports'
+import { useHead } from '#imports'
 
-// Esta página deve poder ser acessada sem o layout padrão
 definePageMeta({ layout: false })
 useHead({ title: 'Nova Senha - Dashboard' })
 
@@ -82,8 +77,6 @@ const loading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 
-const supabase = useSupabaseClient()
-
 const handleUpdatePassword = async () => {
   if (password.value !== passwordConfirm.value) {
     errorMsg.value = 'As senhas não coincidem.'
@@ -92,19 +85,15 @@ const handleUpdatePassword = async () => {
 
   loading.value = true
   errorMsg.value = ''
-  
+
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: password.value
+    await $fetch('/api/auth/update-password', {
+      method: 'POST',
+      body: { password: password.value },
     })
-    
-    if (error) {
-      errorMsg.value = error.message
-    } else {
-      successMsg.value = 'Sua senha foi atualizada com sucesso!'
-    }
+    successMsg.value = 'Sua senha foi atualizada com sucesso!'
   } catch (err: any) {
-    errorMsg.value = err.message || 'Erro ao atualizar senha.'
+    errorMsg.value = err.data?.statusMessage ?? 'Erro ao atualizar senha.'
   } finally {
     loading.value = false
   }

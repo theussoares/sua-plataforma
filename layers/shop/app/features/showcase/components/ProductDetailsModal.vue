@@ -1,7 +1,13 @@
 <template>
+  <Teleport to="body">
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6"
+    role="dialog"
+    aria-modal="true"
+    :aria-labelledby="modalTitleId"
+    @keydown.esc="close"
+    ref="modalRoot"
   >
     <!-- Backdrop -->
     <div
@@ -11,16 +17,22 @@
 
     <!-- Modal Content -->
     <Card
-      class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row rounded-3xl shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-300 border-[var(--border-subtle)]"
+      class="relative w-full sm:max-w-4xl max-h-[92dvh] overflow-hidden flex flex-col md:flex-row rounded-t-3xl sm:rounded-3xl shadow-2xl z-10 animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 border-[var(--border-subtle)]"
       style="background-color: var(--bg-primary); color: var(--text-main)"
     >
+      <!-- Swipe handle (mobile) -->
+      <div class="flex justify-center pt-3 pb-1 md:hidden">
+        <div class="w-10 h-1 rounded-full bg-black/20"></div>
+      </div>
+
       <!-- Close Button -->
       <Button
         @click="close"
         variant="ghost"
         size="icon"
-        class="absolute top-4 right-4 rounded-full z-20 !bg-gray-300"
-        style="background-color: var(--bg-surface); color: var(--text-muted)"
+        class="absolute top-4 right-4 rounded-full z-20"
+        style="background-color: var(--bg-secondary); color: var(--text-main)"
+        aria-label="Fechar modal"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -36,7 +48,7 @@
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
-      </button>
+      </Button>
 
       <!-- Image Section -->
       <div class="w-full md:w-1/2 h-64 md:h-auto flex-shrink-0" style="background-color: var(--bg-secondary)">
@@ -71,7 +83,8 @@
         <div class="mb-6">
           <div class="flex justify-between items-start mb-2">
             <h2
-              class="text-2xl font-black uppercase italic tracking-tighter leading-none"
+              :id="modalTitleId"
+              class="text-xl font-bold leading-snug"
               style="color: currentColor"
             >
               {{ product?.name }}
@@ -133,29 +146,49 @@
         <div class="mt-auto pt-6 border-t border-[var(--border-subtle)] flex flex-col gap-4">
           <div class="flex items-center justify-between">
             <span
-              class="text-xs font-bold uppercase tracking-widest"
+              class="text-xs font-semibold"
               style="color: var(--text-muted)"
-              >Total do item</span
+              >Total</span
             >
             <span
-              class="text-2xl font-black italic tracking-tighter"
+              class="text-xl font-bold"
               style="color: currentColor"
               >{{ formattedPrice }}</span
             >
           </div>
 
+          <!-- Seletor de quantidade -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold" style="color: var(--text-muted)">Quantidade</span>
+            <div class="flex items-center gap-3">
+              <button
+                @click="quantity = Math.max(1, quantity - 1)"
+                class="w-9 h-9 rounded-full border flex items-center justify-center font-bold text-lg transition-colors active:scale-95"
+                style="border-color: var(--border-subtle); color: currentColor"
+                aria-label="Diminuir quantidade"
+              >−</button>
+              <span class="w-6 text-center font-bold text-sm" style="color: currentColor">{{ quantity }}</span>
+              <button
+                @click="quantity = quantity + 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg transition-colors active:scale-95 text-white"
+                style="background-color: var(--primary)"
+                aria-label="Aumentar quantidade"
+              >+</button>
+            </div>
+          </div>
+
           <Button
             @click="handleAddToCart"
-            class="w-full h-14 rounded-2xl transition-all transform active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+            class="w-full h-14 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
             :disabled="!canAddToCart || (product?.stock || 0) <= 0"
           >
-            <span class="uppercase font-black tracking-widest text-xs">
+            <span class="font-semibold text-sm">
               {{
                 (product?.stock || 0) <= 0
                   ? "Produto Esgotado"
                   : canAddToCart
                     ? "Adicionar ao Carrinho"
-                    : "Selecione as opções"
+                    : "Selecione as opções obrigatórias"
               }}
             </span>
           </Button>
@@ -163,10 +196,11 @@
       </div>
     </Card>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick, useId } from "vue";
 import type { Product } from "~/types/app";
 import { formatCurrency } from "~~/app/utils/currency";
 import { calculateItemUnitPrice } from "~~/app/utils/product";
@@ -184,8 +218,21 @@ const emit = defineEmits<{
     e: "add-to-cart",
     product: Product,
     specs: Record<string, string | string[]>,
+    quantity: number,
   ): void;
 }>();
+
+const modalRoot = ref<HTMLElement | null>(null);
+const modalTitleId = `modal-title-${Math.random().toString(36).slice(2)}`;
+const quantity = ref(1);
+
+// Focus trap: move foco para o modal ao abrir
+watch(() => props.isOpen, async (open) => {
+  if (open) {
+    await nextTick();
+    modalRoot.value?.focus();
+  }
+});
 
 // State: Cada chave é o nome do grupo, o valor pode ser string ou string[]
 const selectedSpecs = ref<Record<string, any>>({});
@@ -193,8 +240,8 @@ const selectedSpecs = ref<Record<string, any>>({});
 const formattedPrice = computed(() => {
   if (!props.product) return "";
   const basePrice = props.product.promoPrice ?? props.product.price;
-  const total = calculateItemUnitPrice(basePrice, selectedSpecs.value);
-  return formatCurrency(total);
+  const unitTotal = calculateItemUnitPrice(basePrice, selectedSpecs.value);
+  return formatCurrency(unitTotal * quantity.value);
 });
 
 const variationGroups = computed(() => {
@@ -263,6 +310,7 @@ watch(
   () => props.product,
   (newProduct) => {
     selectedSpecs.value = {};
+    quantity.value = 1;
     if (newProduct?.variationOptions) {
       variationGroups.value.forEach((group) => {
         if (group.options?.length === 1 && group.required) {
@@ -279,7 +327,7 @@ const close = () => {
 
 const handleAddToCart = () => {
   if (props.product && canAddToCart.value) {
-    emit("add-to-cart", props.product, { ...selectedSpecs.value });
+    emit("add-to-cart", props.product, { ...selectedSpecs.value }, quantity.value);
     close();
   }
 };

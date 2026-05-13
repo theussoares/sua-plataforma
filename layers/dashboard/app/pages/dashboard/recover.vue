@@ -21,23 +21,21 @@
           </div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">
-              E-mail cadastrado
-            </label>
+            <label for="email" class="block text-sm font-medium text-gray-700">E-mail cadastrado</label>
             <div class="mt-1">
-              <input 
-                id="email" 
-                type="email" 
-                required 
+              <input
+                id="email"
+                type="email"
+                required
                 v-model="email"
-                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" 
+                class="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               :disabled="loading"
               class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 disabled:opacity-50 transition-colors"
             >
@@ -58,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSupabaseClient, useHead } from '#imports'
+import { useHead } from '#imports'
 
 definePageMeta({ layout: false })
 useHead({ title: 'Recuperar Senha - Dashboard' })
@@ -68,24 +66,21 @@ const loading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 
-const supabase = useSupabaseClient()
-
 const handleRecover = async () => {
   loading.value = true
   errorMsg.value = ''
-  
+
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-      redirectTo: `${window.location.origin}/dashboard/update-password`
+    await $fetch('/api/auth/recover', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        redirectTo: `${window.location.origin}/dashboard/update-password`,
+      },
     })
-    
-    if (error) {
-      errorMsg.value = error.message
-    } else {
-      successMsg.value = 'Pronto! Verifique sua caixa de entrada (e pasta de spam) para redefinir sua senha.'
-    }
+    successMsg.value = 'Pronto! Verifique sua caixa de entrada (e pasta de spam) para redefinir sua senha.'
   } catch (err: any) {
-    errorMsg.value = err.message || 'Erro ao comunicar com o servidor.'
+    errorMsg.value = err.data?.statusMessage ?? 'Erro ao comunicar com o servidor.'
   } finally {
     loading.value = false
   }

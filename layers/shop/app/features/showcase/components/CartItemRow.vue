@@ -8,6 +8,7 @@
         v-if="item.product.imageUrls?.length"
         :src="item.product.imageUrls[0]"
         :alt="item.product.name"
+        loading="lazy"
         class="w-full h-full object-cover"
       />
     </div>
@@ -104,7 +105,7 @@ defineEmits<{
 
 const formattedPrice = computed(() => {
   const price = props.item.product.promoPrice ?? props.item.product.price;
-  return formatCurrency(price);
+  return formatCurrency(price * props.item.quantity);
 });
 
 const hasSpecs = computed(

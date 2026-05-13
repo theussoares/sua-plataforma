@@ -1,22 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { DbOrder, DbOrderItem, OrderStatus } from '~/types/database'
+import type { DbOrderItem, OrderStatus } from '~/types/database'
 import type { Order, CreateOrderPayload, OrderItem } from '~/types/app'
 import { unwrap } from '~/utils/errors'
+import { generatePixPayload } from '~~/server/utils/pix'
 
 export function createOrderRepository(client: SupabaseClient) {
     const mapToOrder = (db: any): Order => ({
         id: db.id,
         storeId: db.store_id,
-        customerName: db.customer_name || "",
-        customerWhatsapp: db.customer_whatsapp || "",
-        deliveryMethod: db.delivery_method || "",
-        address: db.address || "",
+        customerName: db.customer_name || '',
+        customerWhatsapp: db.customer_whatsapp || '',
+        deliveryMethod: db.delivery_method || '',
+        address: db.address || '',
         subtotal: Number(db.subtotal),
         deliveryFee: Number(db.delivery_fee),
         total: Number(db.total),
         status: db.status,
         items: db.order_items?.map(mapToOrderItem),
-        createdAt: db.created_at
+        createdAt: db.created_at,
     })
 
     const mapToOrderItem = (db: DbOrderItem): OrderItem => ({
@@ -25,12 +26,19 @@ export function createOrderRepository(client: SupabaseClient) {
         productName: db.product_name,
         unitPrice: Number(db.unit_price),
         quantity: db.quantity,
-        specsSnapshot: db.specs_snapshot as Record<string, string | string[]>
+        specsSnapshot: db.specs_snapshot as Record<string, string | string[]>,
     })
 
     return {
         async createOrder(payload: CreateOrderPayload) {
-            // 1. Buscar nomes dos produtos para o snapshot
+            // Busca metadados da loja para gerar PIX e snapshot de nomes
+            const { data: store } = await client
+                .from('stores')
+                .select('pix_key, name')
+                .eq('id', payload.storeId)
+                .single()
+
+            // Snapshot dos nomes dos produtos
             const productIds = payload.items.map(i => i.productId)
             const { data: products } = await client
                 .from('products')
@@ -41,7 +49,11 @@ export function createOrderRepository(client: SupabaseClient) {
                 (products || []).map(p => [p.id, p.name])
             )
 
-            // 2. Criar o pedido
+            // Gera payload PIX se a loja tiver chave cadastrada
+            const pixPayload = store?.pix_key
+                ? generatePixPayload(store.pix_key, store.name)
+                : null
+
             const orderResult = await client
                 .from('orders')
                 .insert({
@@ -53,35 +65,26 @@ export function createOrderRepository(client: SupabaseClient) {
                     subtotal: payload.subtotal,
                     delivery_fee: payload.deliveryFee,
                     total: payload.total,
-                    status: 'pending'
+                    pix_payload: pixPayload,
+                    status: 'pending',
                 })
                 .select()
                 .single()
 
-            if (orderResult.error) {
-                console.error('Erro ao criar pedido no Supabase:', orderResult.error)
-                throw orderResult.error
-            }
+            if (orderResult.error) throw orderResult.error
             const order = orderResult.data
 
-            // 3. Criar os itens
             const itemsToInsert = payload.items.map(item => ({
                 order_id: order.id,
                 product_id: item.productId,
                 product_name: productNameMap[item.productId] || 'Produto Removido',
                 unit_price: item.priceAtTime,
                 quantity: item.quantity,
-                specs_snapshot: item.selectedSpecs
+                specs_snapshot: item.selectedSpecs,
             }))
 
-            const itemsResult = await client
-                .from('order_items')
-                .insert(itemsToInsert)
-
-            if (itemsResult.error) {
-                console.error('Erro ao criar itens do pedido no Supabase:', itemsResult.error)
-                throw itemsResult.error
-            }
+            const itemsResult = await client.from('order_items').insert(itemsToInsert)
+            if (itemsResult.error) throw itemsResult.error
 
             return mapToOrder({ ...order, order_items: itemsToInsert })
         },
@@ -89,7 +92,6 @@ export function createOrderRepository(client: SupabaseClient) {
         async getOrderById(id: string): Promise<Order> {
             const result = await client
                 .from('orders')
-                .select('*')
                 .select('*, order_items(*)')
                 .eq('id', id)
                 .single()
@@ -104,13 +106,15 @@ export function createOrderRepository(client: SupabaseClient) {
                 .eq('store_id', storeId)
                 .order('created_at', { ascending: false })
 
-            const data = unwrap(result)
-            return data.map(mapToOrder)
+            return unwrap(result).map(mapToOrder)
         },
 
         async updateStatus(orderId: string, status: OrderStatus, storeId: string) {
-            // 0. Pegar o status atual para evitar baixa de estoque dupla
-            const currentResult = await client.from('orders').select('status').eq('id', orderId).single()
+            const currentResult = await client
+                .from('orders')
+                .select('status')
+                .eq('id', orderId)
+                .single()
             const currentStatus = unwrap(currentResult).status
 
             if (status === 'delivered' && currentStatus !== 'delivered') {
@@ -122,14 +126,13 @@ export function createOrderRepository(client: SupabaseClient) {
                 const items = unwrap(itemsResult) as any[]
 
                 for (const item of items) {
-                    if (item.product_id) {
-                        const productResult = await client.from('products').select('stock').eq('id', item.product_id).single()
-                        const product = unwrap(productResult)
+                    if (!item.product_id) continue
 
-                        await client.from('products')
-                            .update({ stock: Math.max(0, (product.stock || 0) - item.quantity) })
-                            .eq('id', item.product_id)
-                    }
+                    // Decremento atômico — evita race condition entre concorrentes
+                    await client.rpc('decrement_stock', {
+                        p_product_id: item.product_id,
+                        p_quantity: item.quantity,
+                    })
                 }
             }
 
@@ -152,28 +155,25 @@ export function createOrderRepository(client: SupabaseClient) {
                 return filtered
             }
 
-            // 1. Total de vendas (pedidos entregues) - Valor total
             const { data: salesData } = await applyFilters(
                 client.from('orders').select('total')
             ).eq('status', 'delivered')
 
-            const totalSales = salesData?.reduce((acc: any, curr: any) => acc + Number(curr.total), 0) || 0
+            const totalSales = salesData?.reduce((acc: number, curr: any) => acc + Number(curr.total), 0) ?? 0
 
-            // 2. Quantidade total de pedidos
             const { count: totalOrders } = await applyFilters(
                 client.from('orders').select('*', { count: 'exact', head: true })
             )
 
-            // 3. Pedidos pendentes
             const { count: pendingOrders } = await applyFilters(
                 client.from('orders').select('*', { count: 'exact', head: true })
             ).eq('status', 'pending')
 
             return {
                 totalSales,
-                totalOrders: totalOrders || 0,
-                pendingOrders: pendingOrders || 0
+                totalOrders: totalOrders ?? 0,
+                pendingOrders: pendingOrders ?? 0,
             }
-        }
+        },
     }
 }

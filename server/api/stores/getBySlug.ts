@@ -1,35 +1,28 @@
-// server/api/stores/getBySlug.ts
 import { serverSupabaseClient } from '#supabase/server'
 import { storeService } from '~~/server/services/store.service'
 
-export default defineEventHandler(async (event) => {
-    try {
-        // 1. Pega os parâmetros da URL
-        const query = getQuery(event)
-        const slug = query.slug as string
+export default defineCachedEventHandler(async (event) => {
+  const query = getQuery(event)
+  const slug = query.slug as string
 
-        // 2. Validação da Camada de Entrada (Clean Code)
-        if (!slug) {
-            throw createError({
-                statusCode: 400,
-                statusMessage: 'O parâmetro slug é obrigatório'
-            })
-        }
+  if (!slug) {
+    throw createError({ statusCode: 400, statusMessage: 'O parâmetro slug é obrigatório' })
+  }
 
-        // 2. Pega o cliente Supabase autenticado do Nuxt
-        const supabase = await serverSupabaseClient(event)
-
-        // 3. Passa a execução para o Service
-        const store = await storeService.getStoreBySlug(supabase, slug)
-
-        // 4. Retorna sucesso
-        return { success: true, data: store }
-
-    } catch (error: any) {
-        // Transforma erros do serviço em erros HTTP formatados
-        throw createError({
-            statusCode: 400,
-            statusMessage: error.message
-        })
-    }
+  try {
+    const supabase = await serverSupabaseClient(event)
+    const store = await storeService.getStoreBySlug(supabase, slug)
+    return { success: true, data: store }
+  } catch (error: any) {
+    // Slug não encontrado → 404 explícito para a vitrine renderizar a tela correta
+    throw createError({
+      statusCode: error.message?.includes('não encontrad') || error.code === 'PGRST116' ? 404 : 500,
+      statusMessage: error.message || 'Loja não encontrada.',
+    })
+  }
+}, {
+  maxAge: 60 * 5, // 5 minutos
+  staleMaxAge: 60 * 60,
+  getKey: (event) => `store:slug:${getQuery(event).slug}`,
+  shouldBypassCache: () => false,
 })

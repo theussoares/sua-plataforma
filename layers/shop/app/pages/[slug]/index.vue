@@ -13,7 +13,7 @@
       @open-cart="$router.push(`/${route.params.slug}/checkout`)"
     />
 
-    <main class="px-4 py-6 flex flex-col gap-6 max-w-3xl mx-auto">
+    <main class="px-4 lg:px-8 py-6 flex flex-col gap-6 max-w-5xl mx-auto pb-28">
       <!-- Intro / Title -->
       <section>
         <p
@@ -143,12 +143,12 @@
           </div>
 
           <div
-            class="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar -mx-4 px-4"
+            class="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar -mx-2 px-4"
           >
             <div
               v-for="product in category.products.slice(0, 5)"
               :key="product.id"
-              class="w-[60vw] sm:w-[220px] flex-shrink-0 snap-start"
+              class="w-[60vw] sm:w-[220px] lg:w-[260px] flex-shrink-0 snap-start"
             >
               <ProductCard
                 :product="product"
@@ -169,7 +169,9 @@
 
       <!-- Standard Grid Layout (When searching or filtering by category) -->
       <template v-else>
-        <section class="grid grid-cols-2 gap-4 mt-2">
+        <section
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2"
+        >
           <ProductCard
             v-for="product in productsList"
             :key="product.id"
@@ -203,14 +205,45 @@
       :is-open="isModalOpen"
       :product="selectedProduct"
       @close="isModalOpen = false"
-      @add-to-cart="(p, s) => addToCart(p, 1, s)"
+      @add-to-cart="(p, s, qty) => addToCart(p, qty, s)"
     />
+
+    <!-- Floating Cart Bar (padrão iFood/Rappi) -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="translate-y-full opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-full opacity-0"
+    >
+      <div
+        v-if="totalItems > 0"
+        class="fixed bottom-0 left-0 right-0 z-30 p-4 pb-safe"
+      >
+        <button
+          @click="$router.push(`/${route.params.slug}/checkout`)"
+          class="w-full max-w-5xl mx-auto flex items-center justify-between px-5 h-14 rounded-2xl shadow-2xl transition-transform active:scale-[0.98]"
+          style="background-color: var(--primary); color: #fff"
+          aria-label="Ver carrinho"
+        >
+          <span
+            class="flex items-center justify-center w-7 h-7 rounded-lg bg-white/20 font-bold text-sm"
+          >
+            {{ totalItems }}
+          </span>
+          <span class="font-semibold text-sm">Ver carrinho</span>
+          <span class="font-bold text-sm">{{ formattedSubtotal }}</span>
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import type { Product, Category } from "~/types/app";
+import { formatCurrency } from "~~/app/utils/currency";
 
 import StoreHeader from "../../features/showcase/components/StoreHeader.vue";
 import SearchBar from "../../features/showcase/components/SearchBar.vue";
@@ -235,7 +268,8 @@ const { store } = await useStore();
 const { productsList, allProducts, loadMore, hasMore, isLoadingMore, pending } =
   await useProducts(searchQuery, selectedCategoryId);
 
-const { totalItems, addToCart } = useCart();
+const { totalItems, subtotal, addToCart } = useCart();
+const formattedSubtotal = computed(() => formatCurrency(subtotal.value));
 
 const handleViewDetails = (product: Product) => {
   selectedProduct.value = product;
@@ -380,8 +414,19 @@ const themeVars = computed(() => {
   }`;
 });
 
+const canonicalUrl = computed(() =>
+  typeof window !== 'undefined' ? `${window.location.origin}/${route.params.slug}` : ''
+)
+
 useHead({
   title: store?.name ? `${store.name} - Catálogo` : "Catálogo",
+  meta: [
+    { name: 'description', content: store?.description ?? `Conheça o cardápio de ${store?.name ?? 'nossa loja'}` },
+    { property: 'og:title', content: store?.name ?? 'Catálogo' },
+    { property: 'og:description', content: store?.description ?? '' },
+    { property: 'og:image', content: store?.logoUrl ?? '' },
+    { property: 'og:type', content: 'website' },
+  ],
   link: computed(() => {
     const font = store?.themeSettings?.font
       ? getFontFamily(store.themeSettings.font)
@@ -391,6 +436,7 @@ useHead({
         rel: "stylesheet",
         href: `https://fonts.googleapis.com/css2?family=${font.replace(" ", "+")}:wght@400;500;600;700;800&display=swap`,
       },
+      { rel: 'canonical', href: canonicalUrl.value },
     ];
   }),
   style: [

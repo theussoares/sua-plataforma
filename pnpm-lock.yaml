@@ -14,6 +14,9 @@ importers:
       '@nuxtjs/supabase':
         specifier: 2.0.6
         version: 2.0.6
+      '@pinia-plugin-persistedstate/nuxt':
+        specifier: ^1.2.1
+        version: 1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33)))(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))
       '@pinia/nuxt':
         specifier: 0.11.3
         version: 0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))
@@ -41,6 +44,9 @@ importers:
       vue-router:
         specifier: ^5.0.6
         version: 5.0.6(@vue/compiler-sfc@3.5.33)(pinia@3.0.4(vue@3.5.33))(vue@3.5.33)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@nuxtjs/tailwindcss':
         specifier: ^6.14.0
@@ -1291,6 +1297,12 @@ packages:
   '@parcel/watcher@2.5.6':
     resolution: {integrity: sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ==}
     engines: {node: '>= 10.0.0'}
+
+  '@pinia-plugin-persistedstate/nuxt@1.2.1':
+    resolution: {integrity: sha512-q8s+4aQW/AjBMyeqLL48/qzBR5lcgnvvf1525ovNuKf6Wl9CsoLjPKh/5X8vNoKGwSow4gP7lVmdYPQRypgjgg==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+    peerDependencies:
+      '@pinia/nuxt': ^0.5.0
 
   '@pinia/nuxt@0.11.3':
     resolution: {integrity: sha512-7WVNHpWx4qAEzOlnyrRC88kYrwnlR/PrThWT0XI1dSNyUAXu/KBv9oR37uCgYkZroqP5jn8DfzbkNF3BtKvE9w==}
@@ -3146,6 +3158,20 @@ packages:
     resolution: {integrity: sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==}
     engines: {node: '>=0.10.0'}
 
+  pinia-plugin-persistedstate@4.7.1:
+    resolution: {integrity: sha512-WHOqh2esDlR3eAaknPbqXrkkj0D24h8shrDPqysgCFR6ghqP/fpFfJmMPJp0gETHsvrh9YNNg6dQfo2OEtDnIQ==}
+    peerDependencies:
+      '@nuxt/kit': '>=3.0.0'
+      '@pinia/nuxt': '>=0.10.0'
+      pinia: '>=3.0.0'
+    peerDependenciesMeta:
+      '@nuxt/kit':
+        optional: true
+      '@pinia/nuxt':
+        optional: true
+      pinia:
+        optional: true
+
   pinia@3.0.4:
     resolution: {integrity: sha512-l7pqLUFTI/+ESXn6k3nu30ZIzW5E2WZF/LaHJEpoq6ElcLD+wduZoB2kBN19du6K/4FDpPMazY2wJr+IndBtQw==}
     peerDependencies:
@@ -4209,6 +4235,9 @@ packages:
   zip-stream@6.0.1:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
+
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -5410,6 +5439,16 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.5.6
       '@parcel/watcher-win32-ia32': 2.5.6
       '@parcel/watcher-win32-x64': 2.5.6
+
+  '@pinia-plugin-persistedstate/nuxt@1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33)))(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))':
+    dependencies:
+      '@nuxt/kit': 3.21.4(magicast@0.5.2)
+      '@pinia/nuxt': 0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))
+      defu: 6.1.7
+      pinia-plugin-persistedstate: 4.7.1(@nuxt/kit@3.21.4(magicast@0.5.2))(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33)))(pinia@3.0.4(vue@3.5.33))
+    transitivePeerDependencies:
+      - magicast
+      - pinia
 
   '@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))':
     dependencies:
@@ -7555,6 +7594,14 @@ snapshots:
 
   pify@2.3.0: {}
 
+  pinia-plugin-persistedstate@4.7.1(@nuxt/kit@3.21.4(magicast@0.5.2))(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33)))(pinia@3.0.4(vue@3.5.33)):
+    dependencies:
+      defu: 6.1.7
+    optionalDependencies:
+      '@nuxt/kit': 3.21.4(magicast@0.5.2)
+      '@pinia/nuxt': 0.11.3(magicast@0.5.2)(pinia@3.0.4(vue@3.5.33))
+      pinia: 3.0.4(vue@3.5.33)
+
   pinia@3.0.4(vue@3.5.33):
     dependencies:
       '@vue/devtools-api': 7.7.9
@@ -8643,3 +8690,5 @@ snapshots:
       archiver-utils: 5.0.2
       compress-commons: 6.0.2
       readable-stream: 4.7.0
+
+  zod@4.4.3: {}

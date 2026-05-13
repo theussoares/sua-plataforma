@@ -1,30 +1,47 @@
 <template>
   <header
     class="sticky top-0 z-40 flex items-center justify-between py-4 px-6 backdrop-blur-md border-b border-white/10 shadow-sm transition-all duration-300"
-    style="background-color: rgba(var(--bg-primary-rgb), 0.8); color: var(--text-main)"
+    style="
+      background-color: rgba(var(--bg-primary-rgb), 0.8);
+      color: var(--text-main);
+    "
   >
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-4 justify-between w-full">
+      <h1
+        class="text-xl font-black tracking-widest uppercase"
+        style="color: currentColor"
+      >
+        {{ storeName }}
+      </h1>
       <!-- Menu Icon -->
-      <!-- <button class="text-gray-800 hover:text-primary transition-colors active:scale-95">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button
+        class="text-gray-800 hover:text-primary transition-colors active:scale-95"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <line x1="3" y1="12" x2="21" y2="12"></line>
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
-      </button> -->
-      <h1 class="text-xl font-black tracking-widest uppercase" style="color: currentColor">
-        {{ storeName }}
-      </h1>
+      </button>
     </div>
 
-    <Button
+    <!-- <Button
       @click="$emit('open-cart')"
       variant="ghost"
       size="icon"
       class="relative hover:text-primary p-1"
       style="color: currentColor"
     >
-      <!-- Shopping Bag Icon -->
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -46,7 +63,7 @@
       >
         {{ cartItemsCount }}
       </span>
-    </Button>
+    </Button> -->
   </header>
 </template>
 

@@ -37,137 +37,138 @@
         </svg>
       </NuxtLink>
       <h1
-        class="text-lg font-bold tracking-[0.2em] uppercase flex-1 text-center pr-8"
+        class="text-base font-bold flex-1 text-center pr-8"
       >
-        Seu Carrinho
+        {{ currentOrderId ? 'Acompanhar Pedido' : items.length > 0 ? 'Seu Carrinho' : 'Carrinho' }}
       </h1>
     </header>
 
     <main
-      class="flex-1 px-4 py-6 flex flex-col gap-8 max-w-lg mx-auto w-full pb-24"
+      class="flex-1 px-4 lg:px-8 py-6 lg:py-10 flex flex-col gap-8 max-w-5xl mx-auto w-full pb-24"
     >
       <!-- CASO 1: Pedido em Andamento -->
-      <div v-if="currentOrderId">
+      <div v-if="currentOrderId" class="max-w-lg mx-auto w-full">
         <div
-          class="flex flex-col items-center justify-center py-10 text-center gap-6 rounded-3xl p-8 border border-white/10 shadow-sm"
-          style="background-color: var(--bg-secondary)"
+          class="flex flex-col gap-6 rounded-3xl p-6 border shadow-sm"
+          style="background-color: var(--bg-secondary); border-color: var(--border-subtle)"
         >
-          <div
-            class="w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center animate-bounce"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-2xl font-black uppercase italic tracking-tighter">
-              Pedido em Andamento
-            </h2>
-            <p class="text-gray-500 text-sm mt-2">
-              Seu pedido foi enviado para a loja e estamos aguardando a
-              confirmação do lojista. Pode demorar até 5 minutos para atualizar
-              o status do pedido.
-            </p>
-          </div>
-
-          <div
-            class="w-full p-6 rounded-2xl shadow-sm border border-white/10 text-left space-y-4"
-            style="background-color: var(--bg-primary)"
-          >
+          <!-- Cabeçalho do status -->
+          <div class="flex items-center gap-4">
             <div
-              class="flex justify-between items-center pb-4 border-b border-white/5"
+              class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+              :class="orderStatus === 'cancelled' ? 'bg-red-100' : 'bg-green-100'"
             >
-              <span class="text-xs font-bold text-gray-400 uppercase"
-                >Status Atual</span
+              <svg
+                v-if="orderStatus !== 'cancelled'"
+                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" class="text-green-600"
               >
-              <span
-                :class="[
-                  'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest',
-                  statusClasses,
-                ]"
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" class="text-red-500"
               >
-                {{ statusLabel }}
-              </span>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </div>
-            <div class="text-xs space-y-1 text-gray-500">
-              <p>
-                ID do Pedido:
-                <span class="font-mono text-gray-900">{{
-                  currentOrderId
-                }}</span>
-              </p>
-              <p>
-                Você pode fechar esta página, o lojista entrará em contato pelo
-                WhatsApp.
+            <div>
+              <h2 class="text-lg font-bold" style="color: currentColor">
+                {{ orderStatus === 'cancelled' ? 'Pedido Cancelado' : 'Pedido Realizado' }}
+              </h2>
+              <p class="text-sm" style="color: var(--text-muted)">
+                {{ orderStatus === 'cancelled'
+                  ? 'Entre em contato com a loja para mais informações.'
+                  : 'Acompanhe o andamento abaixo.' }}
               </p>
             </div>
-            <div class="flex flex-col gap-2 pt-2">
-              <Button
-                @click="handleManualRefresh"
-                :disabled="isRefreshing"
-                variant="outline"
-                class="w-full text-[10px] font-black uppercase tracking-widest border-gray-100 h-12"
-              >
-                {{ isRefreshing ? "Aguarde..." : "Atualizar Status" }}
-              </Button>
-              <Button
-                @click="handleTalkToStore"
-                variant="default"
-                class="w-full text-[10px] font-black uppercase tracking-widest h-12 bg-[#25D366] hover:bg-[#128C7E] text-white border-none shadow-lg shadow-green-500/20"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="mr-2"
+          </div>
+
+          <!-- Timeline de progresso -->
+          <div v-if="orderStatus !== 'cancelled'" class="flex flex-col gap-0">
+            <div
+              v-for="(step, idx) in orderTimeline"
+              :key="step.key"
+              class="flex items-start gap-3"
+            >
+              <div class="flex flex-col items-center">
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-300"
+                  :class="step.done ? 'bg-green-500 text-white' : step.active ? 'border-2 text-[var(--primary)]' : 'bg-gray-100'"
+                  :style="step.active ? { borderColor: 'var(--primary)', backgroundColor: 'transparent' } : {}"
                 >
-                  <path
-                    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3z"
-                  ></path>
-                </svg>
-                Falar com a Loja
-              </Button>
+                  <svg v-if="step.done" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <div v-else-if="step.active" class="w-2.5 h-2.5 rounded-full" style="background-color: var(--primary)"></div>
+                  <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                </div>
+                <div v-if="idx < orderTimeline.length - 1" class="w-0.5 h-6 my-1" :class="step.done ? 'bg-green-400' : 'bg-gray-200'"></div>
+              </div>
+              <div class="pt-1 pb-4">
+                <p class="text-sm font-semibold" :style="{ color: step.done || step.active ? 'currentColor' : 'var(--text-muted)' }">
+                  {{ step.label }}
+                </p>
+                <p v-if="step.active" class="text-xs mt-0.5" style="color: var(--text-muted)">{{ step.description }}</p>
+              </div>
             </div>
-            <p
-              v-if="refreshCooldown > 0"
-              class="text-[10px] text-center text-gray-400 italic"
-            >
-              Disponível em {{ refreshCooldown }}s
+          </div>
+
+          <!-- Info do pedido -->
+          <div class="rounded-xl p-4 text-sm space-y-2" style="background-color: var(--bg-primary)">
+            <div class="flex justify-between items-center">
+              <span style="color: var(--text-muted)">Número do pedido</span>
+              <span class="font-mono font-semibold text-xs" style="color: currentColor">{{ currentOrderId }}</span>
+            </div>
+            <p class="text-xs" style="color: var(--text-muted)">
+              Você pode fechar esta página. O lojista entrará em contato pelo WhatsApp se necessário.
             </p>
           </div>
 
-          <Button
+          <!-- Ações -->
+          <div class="flex flex-col gap-2">
+            <Button
+              @click="handleManualRefresh"
+              :disabled="isRefreshing || refreshCooldown > 0"
+              variant="outline"
+              class="w-full h-12 text-sm font-semibold"
+            >
+              <span v-if="isRefreshing">Atualizando...</span>
+              <span v-else-if="refreshCooldown > 0">Atualizar em {{ refreshCooldown }}s</span>
+              <span v-else>Atualizar status</span>
+            </Button>
+            <Button
+              @click="handleTalkToStore"
+              class="w-full h-12 text-sm font-semibold bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" class="mr-2">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3z"></path>
+              </svg>
+              Falar com a loja
+            </Button>
+          </div>
+
+          <button
             @click="handleNewOrder"
-            variant="ghost"
-            size="sm"
-            class="text-xs text-gray-400 underline hover:text-gray-900 transition-colors h-auto p-0"
+            class="text-sm underline transition-colors mx-auto"
+            style="color: var(--text-muted)"
           >
-            Fazer outro pedido
-          </Button>
+            Fazer novo pedido
+          </button>
         </div>
       </div>
 
       <!-- CASO 2: Carrinho Vazio -->
       <div
         v-else-if="items.length === 0"
-        class="flex flex-col items-center justify-center py-20 text-center gap-4"
+        class="max-w-lg mx-auto w-full flex flex-col items-center justify-center py-20 text-center gap-4"
       >
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center text-gray-300"
@@ -207,41 +208,58 @@
       </div>
 
       <!-- CASO 3: Fluxo de Checkout Ativo -->
-      <div v-else class="flex flex-col gap-4">
-        <!-- Cart Items -->
-        <section class="flex flex-col">
-          <div class="flex justify-between items-end mb-4">
-            <span class="text-xs font-bold opacity-40 uppercase tracking-wider"
-              >{{ totalItems }} itens</span
-            >
-          </div>
-          <div class="border-t border-white/10">
-            <CartItemRow
-              v-for="item in items"
-              :key="`${item.product.id}-${JSON.stringify(item.selectedSpecs)}`"
-              :item="item"
-              @update-quantity="
-                (qty, specs) => updateQuantity(item.product.id, qty, specs)
-              "
-              @remove="(specs) => removeFromCart(item.product.id, specs)"
-            />
-          </div>
-        </section>
+      <div v-else class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
 
-        <!-- Checkout Form -->
-        <section>
-          <CheckoutForm v-model="formState" />
-        </section>
+        <!-- Left column: cart items + form -->
+        <div class="flex flex-col gap-6">
+          <!-- Cart Items -->
+          <section class="flex flex-col">
+            <div class="flex justify-between items-end mb-4">
+              <span class="text-xs font-semibold opacity-50 uppercase tracking-wider"
+                >{{ totalItems }} {{ totalItems === 1 ? 'item' : 'itens' }}</span
+              >
+            </div>
+            <div class="border-t" style="border-color: var(--border-subtle)">
+              <CartItemRow
+                v-for="item in items"
+                :key="`${item.product.id}-${JSON.stringify(item.selectedSpecs)}`"
+                :item="item"
+                @update-quantity="
+                  (qty, specs) => updateQuantity(item.product.id, qty, specs)
+                "
+                @remove="(specs) => removeFromCart(item.product.id, specs)"
+              />
+            </div>
+          </section>
 
-        <!-- Order Summary -->
-        <section>
+          <!-- Erros de validação inline -->
+          <div
+            v-if="formErrors.length > 0"
+            role="alert"
+            aria-live="polite"
+            class="rounded-xl p-4 flex flex-col gap-1.5"
+            style="background-color: #FEF2F2; border: 1px solid #FECACA"
+          >
+            <p class="text-xs font-bold text-red-700 uppercase tracking-wide">Preencha os campos obrigatórios</p>
+            <ul class="list-disc list-inside">
+              <li v-for="err in formErrors" :key="err" class="text-xs text-red-600">{{ err }}</li>
+            </ul>
+          </div>
+
+          <!-- Checkout Form -->
+          <section>
+            <CheckoutForm v-model="formState" :errors="fieldErrors" />
+          </section>
+        </div>
+
+        <!-- Right column: order summary (sticky on desktop) -->
+        <div class="lg:sticky lg:top-28">
           <OrderSummary
             :subtotal="subtotal"
             :shippingFee="shippingFee"
-            :estimatedTax="estimatedTax"
             @submit="handleFinalize"
           />
-        </section>
+        </div>
       </div>
     </main>
   </div>
@@ -259,8 +277,13 @@ import { useCheckout } from "../../features/checkout/composables/useCheckout";
 import { useOrderTracking } from "../../features/checkout/composables/useOrderTracking";
 import { useCart } from "../../features/showcase/composables/useCart";
 import { useStoreStores } from "../../stores/useStoreStores";
+import { useStore } from "../../features/showcase/composables/useStore";
 
 const route = useRoute();
+
+// Ensures theme data is available even on direct navigation to /checkout
+await useStore();
+
 const {
   items,
   totalItems,
@@ -311,7 +334,7 @@ const handleManualRefresh = async () => {
   isRefreshing.value = true;
   await fetchStatus();
   isRefreshing.value = false;
-  refreshCooldown.value = 150; // 2.5 minutos em segundos
+  refreshCooldown.value = 30;
   const timer = setInterval(() => {
     refreshCooldown.value--;
     if (refreshCooldown.value <= 0) clearInterval(timer);
@@ -332,26 +355,40 @@ const handleNewOrder = () => {
   navigateTo(`/${route.params.slug}`);
 };
 
-const statusLabel = computed(() => {
-  const labels: Record<string, string> = {
-    pending: "Aguardando Lojista",
-    confirmed: "Pedido Aceito",
-    ready: "Aguardando Pagamento",
-    delivered: "Finalizado",
-    cancelled: "Cancelado",
-  };
-  return labels[orderStatus.value] || "Pendente";
-});
+const STATUS_ORDER = ["pending", "confirmed", "ready", "delivered"] as const;
 
-const statusClasses = computed(() => {
-  const classes: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700",
-    confirmed: "bg-blue-100 text-blue-700",
-    ready: "bg-purple-100 text-purple-700",
-    delivered: "bg-green-100 text-green-700",
-    cancelled: "bg-red-100 text-red-700",
-  };
-  return classes[orderStatus.value] || "bg-gray-100 text-gray-700";
+const orderTimeline = computed(() => {
+  const currentIdx = STATUS_ORDER.indexOf(orderStatus.value as any);
+  return [
+    {
+      key: "pending",
+      label: "Pedido recebido",
+      description: "Aguardando confirmação da loja",
+      done: currentIdx > 0,
+      active: currentIdx === 0,
+    },
+    {
+      key: "confirmed",
+      label: "Pedido confirmado",
+      description: "A loja está preparando seu pedido",
+      done: currentIdx > 1,
+      active: currentIdx === 1,
+    },
+    {
+      key: "ready",
+      label: "Pronto para retirada / entrega",
+      description: "Seu pedido está a caminho ou disponível",
+      done: currentIdx > 2,
+      active: currentIdx === 2,
+    },
+    {
+      key: "delivered",
+      label: "Finalizado",
+      description: "",
+      done: currentIdx >= 3,
+      active: false,
+    },
+  ];
 });
 const storeName = computed(() => storeStores.getCurrentStore?.name ?? "");
 
@@ -362,6 +399,31 @@ const formState = ref({
   address: "",
   deliveryMethod: "home" as "home" | "pickup",
 });
+
+const formErrors = ref<string[]>([]);
+const fieldErrors = ref<Record<string, string>>({});
+
+const validateForm = () => {
+  const errors: string[] = [];
+  const fields: Record<string, string> = {};
+
+  if (!formState.value.firstName.trim()) {
+    errors.push("Nome é obrigatório");
+    fields.firstName = "Campo obrigatório";
+  }
+  if (!formState.value.whatsapp.trim()) {
+    errors.push("WhatsApp é obrigatório");
+    fields.whatsapp = "Campo obrigatório";
+  }
+  if (formState.value.deliveryMethod === "home" && !formState.value.address.trim()) {
+    errors.push("Endereço de entrega é obrigatório");
+    fields.address = "Campo obrigatório";
+  }
+
+  formErrors.value = errors;
+  fieldErrors.value = fields;
+  return errors.length === 0;
+};
 
 const shippingFee = computed(() =>
   formState.value.deliveryMethod === "home"
@@ -374,15 +436,7 @@ const estimatedTax = computed(() => subtotal.value * 0.08);
 const handleFinalize = async () => {
   const { sanitizePhone, generateWhatsappUrl } = useCheckout();
 
-  // Validação básica de UI
-  if (!formState.value.firstName || !formState.value.whatsapp) {
-    alert("Por favor, preencha nome e WhatsApp.");
-    return;
-  }
-  if (formState.value.deliveryMethod === "home" && !formState.value.address) {
-    alert("Por favor, informe o endereço de entrega.");
-    return;
-  }
+  if (!validateForm()) return;
 
   const customerName =
     `${formState.value.firstName} ${formState.value.lastName}`.trim();
@@ -421,7 +475,7 @@ const handleFinalize = async () => {
     clearCart();
     await fetchStatus();
   } catch (e: any) {
-    alert(e.statusMessage || "Erro ao processar pedido. Tente novamente.");
+    formErrors.value = [e.statusMessage || "Erro ao processar pedido. Tente novamente."];
   }
 };
 
@@ -483,8 +537,8 @@ const themeVars = computed(() => {
   }`;
 });
 
-useHead({
-  title: `Seu Carrinho - ${storeName.value}`,
+useHead(computed(() => ({
+  title: storeName.value ? `Carrinho — ${storeName.value}` : "Carrinho",
   style: [
     { innerHTML: themeVars.value },
     {
@@ -492,5 +546,5 @@ useHead({
         ".hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }",
     },
   ],
-});
+})));
 </script>

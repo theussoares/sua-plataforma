@@ -33,10 +33,10 @@ function toProduct(db: DbProductWithCategory): Product {
 export function createProductRepository(client: SupabaseClient) {
     return {
         // Vitrine pública: todos os produtos ativos de uma loja
-        async findByStore(storeId: string, options?: { query?: string; categoryId?: string; page?: number; limit?: number, includeInactive?: boolean }): Promise<Product[]> {
+        async findByStore(storeId: string, options?: { query?: string; categoryId?: string; page?: number; limit?: number; includeInactive?: boolean }): Promise<{ data: Product[]; total: number }> {
             let qb = client
                 .from('products')
-                .select('*, categories(name)')
+                .select('*, categories(name)', { count: 'exact' })
                 .eq('store_id', storeId)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false })
@@ -62,7 +62,11 @@ export function createProductRepository(client: SupabaseClient) {
 
             const result = await qb.returns<DbProductWithCategory[]>()
 
-            return unwrap(result).map(toProduct)
+            if (result.error) throw result.error
+            return {
+                data: (result.data ?? []).map(toProduct),
+                total: result.count ?? 0,
+            }
         },
 
         // Busca produtos de uma loja filtrados por categoria

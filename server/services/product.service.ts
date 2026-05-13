@@ -3,8 +3,8 @@ import { createProductRepository } from '../repositories/product.repository'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 async function getAll(supabase: SupabaseClient, storeId: string, options?: { query?: string; categoryId?: string; page?: number; limit?: number; includeInactive?: boolean }) {
- const repository = createProductRepository(supabase)
- return await repository.findByStore(storeId, options)
+  const repository = createProductRepository(supabase)
+  return await repository.findByStore(storeId, options)
 }
 
 async function getByCategory(supabase: SupabaseClient, payload: { storeId: string, categoryId: string }) {

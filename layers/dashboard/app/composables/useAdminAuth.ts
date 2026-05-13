@@ -1,49 +1,39 @@
-import { useState, useSupabaseClient, useSupabaseUser, navigateTo } from '#imports'
+import { useState, useSupabaseUser, navigateTo } from '#imports'
 
 export const useAdminAuth = () => {
   const storeId = useState<string | null>('admin-store-id', () => null)
-  const userStores = useState<any[]>('admin-user-stores', () => [])
+  const userStores = useState<{ id: string; name: string }[]>('admin-user-stores', () => [])
   const user = useSupabaseUser()
-  const supabase = useSupabaseClient()
-  
+
   const loadSession = async () => {
     if (storeId.value) return true
 
-    // Garante que pegamos o usuário atualizado direto da sessão do Supabase
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (!authUser || !authUser.id) {
-      console.warn('loadSession: Nenhum usuário autenticado encontrado via getUser()')
+    try {
+      const result = await $fetch<{ success: boolean; data: { id: string; name: string }[] }>('/api/admin/stores/me')
+      if (result.data && result.data.length > 0) {
+        userStores.value = result.data
+        if (!storeId.value) storeId.value = result.data[0].id
+        return true
+      }
+      console.warn('Usuário autenticado mas sem lojas cadastradas.')
+      return false
+    } catch {
       return false
     }
-
-    // Fetch all stores owned by the authenticated user
-    const { data, error } = await supabase
-      .from('stores')
-      .select('id, name')
-      .eq('owner_id', authUser.id)
-
-    if (data && data.length > 0) {
-        userStores.value = data
-        // Se já não tiver uma selecionada, seleciona a primeira
-        if (!storeId.value) {
-            storeId.value = data[0].id
-        }
-        return true
-    }
-    
-    console.warn('Usuário autenticado, mas não possui nenhuma loja na tabela stores.')
-    return false
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    storeId.value = null
-    navigateTo('/dashboard/login')
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+    } finally {
+      storeId.value = null
+      userStores.value = []
+      navigateTo('/dashboard/login')
+    }
   }
 
   const switchStore = (id: string) => {
-      storeId.value = id
+    storeId.value = id
   }
 
   return {
@@ -52,6 +42,6 @@ export const useAdminAuth = () => {
     user,
     loadSession,
     logout,
-    switchStore
+    switchStore,
   }
 }
